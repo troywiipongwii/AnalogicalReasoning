@@ -1,6 +1,9 @@
 from PIL import Image, ImageChops, ImageFilter, ImageOps
 import numpy as np
 import random
+import time
+
+start = time.time()
 
 class Agent:
     # The default constructor for your Agent. Make sure to execute any
@@ -154,6 +157,10 @@ class Agent:
                     answer = index_minBI + 1
                     print(answer)
                     return answer
+                else:
+                    answer = random.randint(1,7)
+                    print(answer)
+                    return answer
                                                                
                                 
         if problem.problemType == '3x3':
@@ -227,7 +234,7 @@ class Agent:
                 print(answer)
                 return answer
             elif aDictPix[3] == 0:
-                if prob_array['A'].all() == prob_array['E'].all():
+                if self.equal_images(prob_fig['A'], prob_fig['E'])[0]:
                     answer = ansMinE + 1
                     print(answer)
                     return answer
@@ -924,4 +931,7 @@ class Agent:
                 print(GI_index + 1)
                 return GI_index + 1      
         
-        
+
+end = time.time()
+
+print(end - start)
