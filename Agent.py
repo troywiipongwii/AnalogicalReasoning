@@ -29,7 +29,7 @@ class Agent:
     
             for key in problem.figures:
                 fig = problem.figures[key]
-                image = Image.open(fig.visualFilename).convert('L')               
+                image = Image.open(fig.visualFilename).convert('1')               
                 arrayImage = self.centerImageArray(np.array(image))
                 if key in rav_list:
                     prob_fig[key] = image
@@ -122,10 +122,10 @@ class Agent:
                 if len(compare_scoreAB) == compare_scoreAB.count(compare_scoreAB[0]):
                     print('All equal') 
                     print(compare_scoreAB)
-                    mlist = [self.centerImageArray(np.array(ImageChops.darker(prob_fig['C'],ans_fig[x]))) for x in ans_fig]
+                    mlist = [self.centerImageArray(np.array(ImageChops.multiply(prob_fig['C'],ans_fig[x]))) for x in ans_fig]
                     mlistMin = np.argmin(mlist)
           
-                    j = self.centerImageArray(np.array(ImageChops.darker(prob_fig['A'],prob_fig['B'])))
+                    j = self.centerImageArray(np.array(ImageChops.multiply(prob_fig['A'],prob_fig['B'])))
                     k = self.compare_images(j, prob_array['B'])
                     print(k)
                     
@@ -171,7 +171,7 @@ class Agent:
         
             for key in problem.figures:
                 fig = problem.figures[key]
-                image = Image.open(fig.visualFilename).convert('L')                   
+                image = Image.open(fig.visualFilename).convert('1')                   
                 arrayImage = self.centerImageArray(np.array(image))
                 if key in rav_list:
                     prob_fig[key] = image
@@ -334,26 +334,19 @@ class Agent:
                 if nextTree == 'move to combo':
                     imagecombo = self.image_combo(prob_fig,prob_array)
                     imagedifference = self.change_black_to_white(prob_fig, prob_array)
-                    #imagereduction = self.image_reduction(prob_fig,prob_array)
                     comboList = [imagecombo[0], imagedifference[0]]
-                    #ssimList = [imagecombo[4], imagedifference[4]]
                     comboMin = np.argmin(comboList)
-                    #ssimMax = np.argmax(ssimList)
-                    if comboMin == 0: # and ssimMax == 0:
+                    if comboMin == 0: 
                         print('combo of two images')
                         answer = self.ans_combo(ans_fig, ans_array,prob_fig,prob_array,imagecombo[1])
                         print(answer)
                         return answer
-                    elif comboMin == 1: # and ssimMax == 1:
+                    elif comboMin == 1:
                         print('difference of two images')
                         answer = self.ans_difference(ans_fig, ans_array,prob_fig,prob_array,imagedifference[1])
                         print(answer)
                         return answer
-                    #elif comboMin == 2:
-                        #print('reduction of two images')
-                        #answer = self.ans_reduction(ans_fig, ans_array,prob_fig,prob_array,imagereduction[1])
-                        #print(answer)
-                        #return answer    
+   
                 else:
                     nexTree = 'move to pixel sequence'
                     print(nextTree)
@@ -381,22 +374,45 @@ class Agent:
                     print(answer)
                     return(answer)
                             
-                
-                
-                
-                
-                
-                    
-                            
-                                
-                    
-                    
+                  
+    @staticmethod
+    def equal_images(im1, im2):
+        dif = sum(abs(p1 - p2) for p1, p2 in zip(im1.getdata(), im2.getdata()))
 
-                        
-                    
-                
-                
-            
+        ncomponents = im1.size[0] * im1.size[1] * 3
+        dist = (dif / 255.0 * 100) / ncomponents
+        im1__getcolors = im1.getcolors()
+        im2_getcolors = im2.getcolors()
+        black1 = (10000, 0)
+        if len(im1__getcolors) > 1:
+            (black, white) = im1__getcolors
+
+        else:
+            if im1__getcolors[0][1] == 255:
+                white = im1__getcolors
+                black = (0, 0)
+            else:
+                black = im1__getcolors
+                white = (0, 255)
+
+        if len(im2_getcolors) > 1:
+            (black1, white1) = im2_getcolors
+        else:
+            if im2_getcolors[0][1] == 255:
+                white1 = im2_getcolors
+                black1 = (0, 0)
+            else:
+                black1 = im2_getcolors
+                white1 = (0, 255)
+
+
+
+        stats = {"dist": dist, "blk": abs(black[0] - black1[0])}
+
+
+        return (dist<1.1 and abs(black[0]-black1[0])<105), stats
+        # return (dist<1.1 and abs(black[0]-black1[0])<105 and abs(white[0]-white1[0]<100)), stats                     
+                                      
     ''' Functions for determining transformations'''
     
 
@@ -489,7 +505,7 @@ class Agent:
             
             
             
-    ''' Functions for dealing with the images '''
+    ''' Functions for dealing with the images '''       
     
     def center_lists(self, list1):
         
@@ -703,108 +719,79 @@ class Agent:
     
     def image_combo(self, prob_fig, prob_array):
         
-        AB = ImageChops.darker(prob_fig['A'],prob_fig['B'])
-        BC = ImageChops.darker(prob_fig['B'],prob_fig['C'])
-        AC = ImageChops.darker(prob_fig['A'],prob_fig['A'])
+        A = prob_fig['A']
+        B = prob_fig['B']
+        C = prob_fig['C']        
         
-        arrayAB = self.centerImageArray(np.array(ImageChops.darker(prob_fig['A'],prob_fig['B'])))
-        arrayBC = self.centerImageArray(np.array(ImageChops.darker(prob_fig['B'],prob_fig['C'])))
-        arrayAC = self.centerImageArray(np.array(ImageChops.darker(prob_fig['A'],prob_fig['C'])))
-
-        ABisC = self.pixels_comparison(arrayAB, prob_array['C'])
-        BCisA = self.pixels_comparison(arrayBC, prob_array['A'])
-        ACisB = self.pixels_comparison(arrayAC, prob_array['B'])
-
+        AB = ImageChops.multiply(A,B)
+        BC = ImageChops.multiply(B,C)
+        AC = ImageChops.multiply(A,C)
+        
+        arrayAB = self.centerImageArray(np.array(AB))
+        arrayBC = self.centerImageArray(np.array(BC))
+        arrayAC = self.centerImageArray(np.array(AC))
+        
         ABisC1 = self.compare_images(arrayAB, prob_array['C'])
         BCisA1 = self.compare_images(arrayBC, prob_array['A'])
-        ACisB1 = self.compare_images(arrayAC, prob_array['B'])
+        ACisB1 = self.compare_images(arrayAC, prob_array['B'])        
         
-        ABisC2 = self.structural_similarity(arrayAB, prob_array['C'])
-        BCisA2 = self.structural_similarity(arrayBC, prob_array['A'])
-        ACisB2 = self.structural_similarity(arrayAC, prob_array['B'])        
-        
-        
-
-        min_list = [ABisC,BCisA,ACisB]
-        min_list1 = [ABisC1,BCisA1,ACisB1]
-        min_list2 = [ABisC2,BCisA2,ACisB2]
+        min_list = [ABisC1,BCisA1,ACisB1]
         min_value = min(min_list)
         min_index = np.argmin(min_list)
-        min_value1 = min(min_list1)
-        min_index1 = np.argmin(min_list1)
-        min_value2 = max(min_list2)
-        min_index2 = np.argmax(min_list2)
-        m = [min_value,min_index,min_value1,min_index1, min_value2, min_index2]
-        return m
-    
-    def image_reduction(self, prob_fig, prob_array):
-        AB = ImageChops.lighter(prob_fig['A'],prob_fig['B'])
-        BC = ImageChops.lighter(prob_fig['B'],prob_fig['C'])
-        AC = ImageChops.lighter(prob_fig['A'],prob_fig['A'])
         
-        arrayAB = self.centerImageArray(np.array(ImageChops.lighter(prob_fig['A'],prob_fig['B'])))
-        arrayBC = self.centerImageArray(np.array(ImageChops.lighter(prob_fig['B'],prob_fig['C'])))
-        arrayAC = self.centerImageArray(np.array(ImageChops.lighter(prob_fig['A'],prob_fig['C'])))
+        if self.equal_images(AB,C)[0]:
+            a = [min_value, 0]
+            return a
+        elif self.equal_images(BC,A)[0]:
+            b = [min_value, 1]
+            return b
+        elif self.equal_images(AC,B)[0]:
+            c = [min_value, 2]
+            return c
+        else:
+            d = [min_value, min_index]
+            return d
 
-        ABisC = self.pixels_comparison(arrayAB, prob_array['C'])
-        BCisA = self.pixels_comparison(arrayBC, prob_array['A'])
-        ACisB = self.pixels_comparison(arrayAC, prob_array['B'])
-
-        ABisC1 = self.compare_images(arrayAB, prob_array['C'])
-        BCisA1 = self.compare_images(arrayBC, prob_array['A'])
-        ACisB1 = self.compare_images(arrayAC, prob_array['B'])
-        
-        ABisC2 = self.structural_similarity(arrayAB, prob_array['C'])
-        BCisA2 = self.structural_similarity(arrayBC, prob_array['A'])
-        ACisB2 = self.structural_similarity(arrayAC, prob_array['B'])        
-        
-        
-
-        min_list = [ABisC,BCisA,ACisB]
-        min_list1 = [ABisC1,BCisA1,ACisB1]
-        min_list2 = [ABisC2,BCisA2,ACisB2]
-        min_value = min(min_list)
-        min_index = np.argmin(min_list)
-        min_value1 = min(min_list1)
-        min_index1 = np.argmin(min_list1)
-        min_value2 = max(min_list2)
-        min_index2 = np.argmax(min_list2)
-        m = [min_value,min_index,min_value1,min_index1, min_value2, min_index2]
-        return m
     
     def change_black_to_white(self, prob_fig, prob_array):
         
-        AB = self.black_white_pixel_flip(ImageChops.difference(prob_fig['A'], prob_fig['B']))
-        BC = self.black_white_pixel_flip(ImageChops.difference(prob_fig['B'], prob_fig['C']))
-        AC = self.black_white_pixel_flip(ImageChops.difference(prob_fig['A'], prob_fig['C']))       
+        A = prob_fig['A']
+        B = prob_fig['B']
+        C = prob_fig['C']          
+        
+        AB = self.black_white_pixel_flip(ImageChops.difference(A,B))
+        BC = self.black_white_pixel_flip(ImageChops.difference(B,C))
+        AC = self.black_white_pixel_flip(ImageChops.difference(A,C)) 
+      
         
         arrayAB = self.centerImageArray(np.array(AB))
         arrayBC = self.centerImageArray(np.array(BC))
         arrayAC = self.centerImageArray(np.array(AC))
                                       
-        ABisC = self.pixels_comparison(arrayAB, prob_array['C'])
-        BCisA = self.pixels_comparison(arrayBC, prob_array['A'])
-        ACisB = self.pixels_comparison(arrayAC, prob_array['B'])
-
-        ABisC1 = self.compare_images(AB, prob_array['C'])
-        BCisA1 = self.compare_images(BC, prob_array['A'])
-        ACisB1 = self.compare_images(AC, prob_array['B'])
+        ABisC = self.equal_images(AB, C)[0]
+        BCisA = self.equal_images(BC, A)[0]
+        ACisB = self.equal_images(AC, B)[0]
         
-        ABisC2 = self.structural_similarity(AB, prob_array['C'])
-        BCisA2 = self.structural_similarity(BC, prob_array['A'])
-        ACisB2 = self.structural_similarity(AC, prob_array['B'])        
-
-        min_list = [ABisC,BCisA,ACisB]
-        min_list1 = [ABisC1,BCisA1,ACisB1]
-        min_list2 = [ABisC2,BCisA2,ACisB2]
+        ABisC1 = self.compare_images(arrayAB, prob_array['C'])
+        BCisA1 = self.compare_images(arrayBC, prob_array['A'])
+        ACisB1 = self.compare_images(arrayAC, prob_array['B'])        
+        
+        min_list = [ABisC1,BCisA1,ACisB1]
         min_value = min(min_list)
         min_index = np.argmin(min_list)
-        min_value1 = min(min_list1)
-        min_index1 = np.argmin(min_list1)
-        min_value2 = max(min_list2)
-        min_index2 = np.argmax(min_list2)
-        m = [min_value,min_index,min_value1,min_index1, min_value2, min_index2]
-        return m
+        
+        if ABisC:
+            a = [min_value, 0]
+            return a
+        elif BCisA:
+            b = [min_value, 1]
+            return b
+        elif ACisB:
+            c = [min_value, 2]
+            return c
+        else:
+            d = [min_value, min_index]
+            return d
        
     
     ''' Answer functions for combination functions'''
@@ -822,309 +809,119 @@ class Agent:
         arrayGI = self.center_lists(GI)
 
         if min_index == 0:
+            for i in range(1,9):
+                if self.equal_images(GH, ans_fig[str(i)])[0]:
+                    print(i)
+                    return i
+                
             GHlist = [self.compare_images(arrayGH, ans_array[str(x)]) for x in range(1,9)]
             GH_index = np.argmin(GHlist)
-            GHpixel = [self.pixels_comparison(arrayGH, ans_array[str(x)]) for x in range(1,9)]
-            GHpix_index = np.argmin(GHpixel)
-            GHssim = [self.structural_similarity(arrayGH, ans_array[str(x)]) for x in range(1,9)]
-            GHssim_index = np.argmax(GHssim)
-            if min(GHlist)== 0:
-                answer1 = GH_index + 1
-                print(answer1)
-                return answer1
-            elif min(GHpixel) == 0:
-                answer2 = GHpix_index + 1
-                print(answer2)
-                return answer2
-            elif max(GHssim) == 1:
-                answer = GHssim_index + 1
-                print(answer)
-                return answer
-            elif min(GHlist) != 0 and min(GHpixel) != 0 and max(GHssim) != 1:
-                if GHssim_index == GHpix_index == GH_index:
-                    answer = GH_index + 1
-                    print(answer)
-                    return answer
-                elif GHssim_index == GHpix_index or GHssim_index == GH_index:
-                    answer = GHssim_index + 1
-                    print(answer)
-                    return answer
-                else:
-                    return GHssim_index + 1
-
-
-        elif min_index == 1:
-            HIlist = [self.compare_images(arrayHI[x], prob_array['G']) for x in range(0,8)]
-            HI_index = np.argmin(HIlist)
-            HIpixel = [self.pixels_comparison(arrayHI[x], prob_array['G']) for x in range(0,8)]
-            HIpix_index = np.argmin(HIpixel)
-            HIssim = [self.structural_similarity(arrayHI, prob_array['G']) for x in range(0,8)]
-            HIssim_index = np.argmax(HIssim)            
-            if min(HIlist)== 0:
-                answer1 = HI_index + 1
-                print(answer1)
-                return answer1
-            elif min(HIpixel) == 0:
-                answer2 = HIpix_index + 1
-                print(answer2)
-                return answer2
-            elif max(HIssim) == 1:
-                answer = HIssim_index + 1
-                print(answer)
-                return answer
-            elif min(HIlist) != 0 and min(HIpixel) != 0 and max(HIssim) != 1:
-                if HIssim_index == HIpix_index == HI_index:
-                    answer = HI_index + 1
-                    print(answer)
-                    return answer
-                elif HIssim_index == HIpix_index or HIssim_index == HI_index:
-                    answer = HIssim_index + 1
-                    print(answer)
-                    return answer
-                else:
-                    return HIssim_index + 1
-
-        elif min_index == 2:
-            GIlist = [self.compare_images(arrayGI[x], prob_array['H']) for x in range(0,8)]
-            GI_index = np.argmin(GIlist)
-            GIpixel = [self.pixels_comparison(arrayGI[x], prob_array['H']) for x in range(0,8)]
-            GIpix_index = np.argmin(GIpixel)
-            GIssim = [self.structural_similarity(arrayGI, prob_array['H']) for x in range(0,8)]
-            GIssim_index = np.argmax(GIssim)            
-            if min(GIlist)== 0:
-                answer1 = GI_index + 1
-                print(answer1)
-                return answer1
-            elif min(GIpixel) == 0:
-                answer2 = GIpix_index + 1
-                print(answer2)
-                return answer2
-            elif max(GIssim) == 1:
-                answer = GIssim_index + 1
-                print(answer)
-                return answer
-            elif min(GIlist) != 0 and min(GIpixel) != 0 and max(GIssim) != 1:
-                if GIssim_index == GIpix_index == GI_index:
-                    answer = GH_index + 1
-                    print(answer)
-                    return answer
-                elif GIssim_index == GIpix_index or GIssim_index == GI_index:
-                    answer = GIssim_index + 1
-                    print(answer)
-                    return answer
-                else:
-                    return GIssim_index + 1  
             
-    
-    def ans_reduction(self, ans_fig, ans_array, prob_fig,prob_array,min_index):
-
-        GH = ImageChops.lighter(prob_fig['G'],prob_fig['H'])
-
-        HI = [ImageChops.lighter(prob_fig['H'],ans_fig[str(x)]) for x in range(1,9)]
-        GI = [ImageChops.lighter(prob_fig['G'],ans_fig[str(x)]) for x in range(1,9)]
-        
-        arrayGH = self.centerImageArray(np.array(GH))
-        arrayHI = self.center_lists(HI)
-        arrayGI = self.center_lists(GI)        
-
-
-        if min_index == 0:
-            GHlist = [self.compare_images(arrayGH, ans_array[str(x)]) for x in range(1,9)]
-            GH_index = np.argmin(GHlist)
-            GHpixel = [self.pixels_comparison(arrayGH, ans_array[str(x)]) for x in range(1,9)]
-            GHpix_index = np.argmin(GHpixel)
-            GHssim = [self.structural_similarity(arrayGH, ans_array[str(x)]) for x in range(1,9)]
-            GHssim_index = np.argmax(GHssim)
             if min(GHlist)== 0:
                 answer1 = GH_index + 1
                 print(answer1)
                 return answer1
-            elif min(GHpixel) == 0:
-                answer2 = GHpix_index + 1
-                print(answer2)
-                return answer2
-            elif max(GHssim) == 1:
-                answer = GHssim_index + 1
-                print(answer)
-                return answer
-            elif min(GHlist) != 0 and min(GHpixel) != 0 and max(GHssim) != 1:
-                if GHssim_index == GHpix_index == GH_index:
-                    answer = GH_index + 1
-                    print(answer)
-                    return answer
-                elif GHssim_index == GHpix_index or GHssim_index == GH_index:
-                    answer = GHssim_index + 1
-                    print(answer)
-                    return answer
-                else:
-                    return GHssim_index + 1
-    
-    
+            else:
+                return GH_index + 1
+
+
         elif min_index == 1:
+            
+            for i in range(0,8):
+                if self.equal_images(HI[i], prob_fig['G'])[0]:
+                    print(i + 1)
+                    return i + 1
+                
             HIlist = [self.compare_images(arrayHI[x], prob_array['G']) for x in range(0,8)]
             HI_index = np.argmin(HIlist)
-            HIpixel = [self.pixels_comparison(arrayHI[x], prob_array['G']) for x in range(0,8)]
-            HIpix_index = np.argmin(HIpixel)
-            HIssim = [self.structural_similarity(arrayHI, prob_array['G']) for x in range(0,8)]
-            HIssim_index = np.argmax(HIssim)            
+           
             if min(HIlist)== 0:
                 answer1 = HI_index + 1
                 print(answer1)
                 return answer1
-            elif min(HIpixel) == 0:
-                answer2 = HIpix_index + 1
-                print(answer2)
-                return answer2
-            elif max(HIssim) == 1:
-                answer = HIssim_index + 1
-                print(answer)
-                return answer
-            elif min(HIlist) != 0 and min(HIpixel) != 0 and max(HIssim) != 1:
-                if HIssim_index == HIpix_index == HI_index:
-                    answer = HI_index + 1
-                    print(answer)
-                    return answer
-                elif HIssim_index == HIpix_index or HIssim_index == HI_index:
-                    answer = HIssim_index + 1
-                    print(answer)
-                    return answer
-                else:
-                    return HIssim_index + 1
-    
+            else:
+                return HI_index + 1
+
         elif min_index == 2:
+            
+            for i in range(0,8):
+                if self.equal_images(GI[i], prob_fig['H']):
+                    print(i + 1)
+                    return i + 1
+            
             GIlist = [self.compare_images(arrayGI[x], prob_array['H']) for x in range(0,8)]
             GI_index = np.argmin(GIlist)
-            GIpixel = [self.pixels_comparison(arrayGI[x], prob_array['H']) for x in range(0,8)]
-            GIpix_index = np.argmin(GIpixel)
-            GIssim = [self.structural_similarity(arrayGI, prob_array['H']) for x in range(0,8)]
-            GIssim_index = np.argmax(GIssim)            
+            
             if min(GIlist)== 0:
                 answer1 = GI_index + 1
                 print(answer1)
                 return answer1
-            elif min(GIpixel) == 0:
-                answer2 = GIpix_index + 1
-                print(answer2)
-                return answer2
-            elif max(GIssim) == 1:
-                answer = GIssim_index + 1
-                print(answer)
-                return answer
-            elif min(GIlist) != 0 and min(GIpixel) != 0 and max(GIssim) != 1:
-                if GIssim_index == GIpix_index == GI_index:
-                    answer = GH_index + 1
-                    print(answer)
-                    return answer
-                elif GIssim_index == GIpix_index or GIssim_index == GI_index:
-                    answer = GIssim_index + 1
-                    print(answer)
-                    return answer
-                else:
-                    return GIssim_index + 1
+            else:
+                return GI_index + 1  
+            
                 
     def ans_combo(self, ans_fig, ans_array, prob_fig,prob_array,min_index):
 
-        GH = ImageChops.darker(prob_fig['G'],prob_fig['H'])
+        GH = ImageChops.multiply(prob_fig['G'],prob_fig['H'])
 
-        HI = [ImageChops.darker(prob_fig['H'],ans_fig[str(x)]) for x in range(1,9)]
-        GI = [ImageChops.darker(prob_fig['G'],ans_fig[str(x)]) for x in range(1,9)]
+        HI = [ImageChops.multiply(prob_fig['H'],ans_fig[str(x)]) for x in range(1,9)]
+        GI = [ImageChops.multiply(prob_fig['G'],ans_fig[str(x)]) for x in range(1,9)]
         
         arrayGH = self.centerImageArray(np.array(GH))
         arrayHI = self.center_lists(HI)
-        arrayGI = self.center_lists(GI)        
+        arrayGI = self.center_lists(GI)
 
         if min_index == 0:
+            for i in range(1,9):
+                if self.equal_images(GH, ans_fig[str(i)])[0]:
+                    print(i)
+                    return i
+                
             GHlist = [self.compare_images(arrayGH, ans_array[str(x)]) for x in range(1,9)]
             GH_index = np.argmin(GHlist)
-            GHpixel = [self.pixels_comparison(arrayGH, ans_array[str(x)]) for x in range(1,9)]
-            GHpix_index = np.argmin(GHpixel)
-            GHssim = [self.structural_similarity(arrayGH, ans_array[str(x)]) for x in range(1,9)]
-            GHssim_index = np.argmax(GHssim)
+            
             if min(GHlist)== 0:
                 answer1 = GH_index + 1
                 print(answer1)
                 return answer1
-            elif min(GHpixel) == 0:
-                answer2 = GHpix_index + 1
-                print(answer2)
-                return answer2
-            elif max(GHssim) == 1:
-                answer = GHssim_index + 1
-                print(answer)
-                return answer
-            elif min(GHlist) != 0 and min(GHpixel) != 0 and max(GHssim) != 1:
-                if GHssim_index == GHpix_index == GH_index:
-                    answer = GH_index + 1
-                    print(answer)
-                    return answer
-                elif GHssim_index == GHpix_index or GHssim_index == GH_index:
-                    answer = GHssim_index + 1
-                    print(answer)
-                    return answer
-                else:
-                    return GHssim_index + 1
-    
-    
+            else:
+                print(GH_index + 1)
+                return GH_index + 1
+
+
         elif min_index == 1:
+            
+            for i in range(0,8):
+                if self.equal_images(HI[i], prob_fig['G'])[0]:
+                    print(i + 1)
+                    return i + 1
+                
             HIlist = [self.compare_images(arrayHI[x], prob_array['G']) for x in range(0,8)]
             HI_index = np.argmin(HIlist)
-            HIpixel = [self.pixels_comparison(arrayHI[x], prob_array['G']) for x in range(0,8)]
-            HIpix_index = np.argmin(HIpixel)
-            HIssim = [self.structural_similarity(arrayHI, prob_array['G']) for x in range(0,8)]
-            HIssim_index = np.argmax(HIssim)            
+           
             if min(HIlist)== 0:
                 answer1 = HI_index + 1
                 print(answer1)
                 return answer1
-            elif min(HIpixel) == 0:
-                answer2 = HIpix_index + 1
-                print(answer2)
-                return answer2
-            elif max(HIssim) == 1:
-                answer = HIssim_index + 1
-                print(answer)
-                return answer
-            elif min(HIlist) != 0 and min(HIpixel) != 0 and max(HIssim) != 1:
-                if HIssim_index == HIpix_index == HI_index:
-                    answer = HI_index + 1
-                    print(answer)
-                    return answer
-                elif HIssim_index == HIpix_index or HIssim_index == HI_index:
-                    answer = HIssim_index + 1
-                    print(answer)
-                    return answer
-                else:
-                    return HIssim_index + 1
-    
+            else:
+                return HI_index + 1
+
         elif min_index == 2:
+            
+            for i in range(0,8):
+                if self.equal_images(GI[i], prob_fig['H']):
+                    print(i + 1)
+                    return i + 1
+            
             GIlist = [self.compare_images(arrayGI[x], prob_array['H']) for x in range(0,8)]
             GI_index = np.argmin(GIlist)
-            GIpixel = [self.pixels_comparison(arrayGI[x], prob_array['H']) for x in range(0,8)]
-            GIpix_index = np.argmin(GIpixel)
-            GIssim = [self.structural_similarity(arrayGI, prob_array['H']) for x in range(0,8)]
-            GIssim_index = np.argmax(GIssim)            
+            
             if min(GIlist)== 0:
                 answer1 = GI_index + 1
                 print(answer1)
                 return answer1
-            elif min(GIpixel) == 0:
-                answer2 = GIpix_index + 1
-                print(answer2)
-                return answer2
-            elif max(GIssim) == 1:
-                answer = GIssim_index + 1
-                print(answer)
-                return answer
-            elif min(GIlist) != 0 and min(GIpixel) != 0 and max(GIssim) != 1:
-                if GIssim_index == GIpix_index == GI_index:
-                    answer = GH_index + 1
-                    print(answer)
-                    return answer
-                elif GIssim_index == GIpix_index or GIssim_index == GI_index:
-                    answer = GIssim_index + 1
-                    print(answer)
-                    return answer
-                else:
-                    return GIssim_index + 1     
+            else:
+                print(GI_index + 1)
+                return GI_index + 1      
         
         
