@@ -1,9 +1,20 @@
-from PIL import Image, ImageChops, ImageFilter, ImageOps
+
+# Your Agent for solving Raven's Progressive Matrices. You MUST modify this file.
+#
+# You may also create and submit new files in addition to modifying this file.
+#
+# Make sure your file retains methods with the signatures:
+# def __init__(self)
+# def Solve(self,problem)
+#
+# These methods will be necessary for the project's main method to run.
+
+# Install Pillow and uncomment this line to access image processing.
+from PIL import Image, ImageChops, ImageMath, ImageOps, ImageStat, ImageFilter
+import math, operator
 import numpy as np
 import random
-import time
 
-start = time.time()
 
 class Agent:
     # The default constructor for your Agent. Make sure to execute any
@@ -13,9 +24,32 @@ class Agent:
     # main().
     def __init__(self):
         pass
-    
+
+    # The primary method for solving incoming Raven's Progressive Matrices.
+    # For each problem, your Agent's Solve() method will be called. At the
+    # conclusion of Solve(), your Agent should return an integer representing its
+    # answer to the question: "1", "2", "3", "4", "5", or "6". These integers
+    # are also the Names of the individual Ravensprob_fig, obtained through
+    # RavensFigure.getName() (as Strings).
+    #
+    # In addition to returning your answer at the end of the method, your Agent
+    # may also call problem.checkAnswer(int givenAnswer). The parameter
+    # passed to checkAnswer should be your Agent's current guess for the
+    # problem; checkAnswer will return the correct answer to the problem. This
+    # allows your Agent to check its answer. Note, however, that after your
+    # agent has called checkAnswer, it will *not* be able to change its answer.
+    # checkAnswer is used to allow your Agent to learn from its incorrect
+    # answers; however, your Agent cannot change the answer to a question it
+    # has already answered.
+    #
+    # If your Agent calls checkAnswer during execution of Solve, the answer it
+    # returns will be ignored; otherwise, the answer returned at the end of
+    # Solve will be taken as your Agent's answer to this problem.
+    #
+    # Make sure to return your answer *as an integer* at the end of Solve().
+    # Returning your answer as a string may cause your program to crash.
+    skipping= 0
     def Solve(self, problem):
-        
         
         if problem.problemType == '2x2':
             
@@ -64,108 +98,64 @@ class Agent:
             prob_fig['C'].transpose(Image.ROTATE_90), 
             prob_fig['C'].transpose(Image.ROTATE_180), 
             prob_fig['C'].transpose(Image.ROTATE_270)
-            ]                    
-        
-                    
+            ]
             
-            if prob_fig['A'] == prob_fig['B']:
+                                           
+            if self.equal_images(prob_fig['A'], prob_fig['B'])[0]:
                 print('A == B')
                 for i in range(1,7):
-                    if ans_fig[str(i)] == prob_fig['C']:
+                    if self.equal_images(ans_fig[str(i)], prob_fig['C'])[0]:
                         answer = i
                         print(answer)
                         return answer                  
 
                     
-            elif prob_fig['A'] == prob_fig['C']:
-                print('A == C')               
+            elif self.equal_images(prob_fig['A'], prob_fig['C'])[0]:             
                 for i in range(1,7):
-                        if prob_fig['B'] == ans_fig[str(i)]:
-                            answer = i
-                            print(answer)
-                            return answer
+                    if self.equal_images(ans_fig[str(i)], prob_fig['B'])[0]:
+                        answer = i
+                        print(answer)
+                        return answer
                     
-                    
-            elif prob_fig['A'] != prob_fig['B'] and prob_fig['A'] != prob_fig['C']:
-                print('A !=C')
+            elif self.equal_images(prob_fig['B'], self.black_white_pixel_flip(ImageChops.difference(prob_fig['A'],prob_fig['B'])))[0]:
+                for i in range(1,9):
+                    if self.equal_images(ans_fig[str(i)], self.black_white_pixel_flip(ImageChops.difference(prob_fig['C'],ans_fig[str(i)])))[0]:
+                        print(i)
+                        return i
                 
+            elif self.equal_images(prob_fig['C'], self.black_white_pixel_flip(ImageChops.difference(prob_fig['A'],prob_fig['C'])))[0]:
+                for i in range(1,9):
+                    if self.equal_images(ans_fig[str(i)], self.black_white_pixel_flip(ImageChops.difference(prob_fig['B'],ans_fig[str(i)])))[0]:
+                        print(i)
+                        return i                   
+                                   
+            else:
                 for x in range(len(ATransformations)):
-                    if prob_fig['B'] == ATransformations[x]:
-                        print('B a Transformation of A')
+                    if self.equal_images(ATransformations[x], prob_fig['B'])[0]:
                         trans = x
                         for i in range(1,7):
-                            if ans_fig[str(i)] == CTransformations[trans]:
+                            if self.equal_images(ans_fig[str(i)], CTransformations[trans])[0]:
                                 print(i)
                                 return i
                             
                 for x in range(len(ATransformations)):
-                    if prob_fig['C'] == ATransformations[x]:
-                        print('C a Transformation of A')
+                    if self.equal_images(ATransformations[x], prob_fig['C'])[0]:
                         trans = x
                         for i in range(1,7):
-                            if ans_fig[str(i)] == BTransformations[trans]:
+                            if self.equal_images(ans_fig[str(i)], BTransformations[trans])[0]:
                                 print(i)
-                                return i                
-                
-                               
-                AtransArray = self.center_lists(ATransformations)
-                BtransArray = self.center_lists(BTransformations)
-                CtransArray = self.center_lists(CTransformations)
-                
-                compare_scoreAB = [self.compare_images(AtransArray[x], prob_array['B']) for x in range(len(AtransArray))]
-                abMin = np.argmin(compare_scoreAB)
-                compare_scoreCI = [self.compare_images(ans_array[x], CtransArray[abMin]) for x in ans_array]
-                compare_scoreAC = [self.compare_images(AtransArray[x], prob_array['C']) for x in range(len(AtransArray))]
-                acMin = np.argmin(compare_scoreAC)
-                compare_scoreBI = [self.compare_images(ans_array[x], CtransArray[acMin]) for x in ans_array]                
-                
-                
-                
-                
-                if len(compare_scoreAB) == compare_scoreAB.count(compare_scoreAB[0]):
-                    print('All equal') 
-                    print(compare_scoreAB)
-                    mlist = [self.centerImageArray(np.array(ImageChops.multiply(prob_fig['C'],ans_fig[x]))) for x in ans_fig]
-                    mlistMin = np.argmin(mlist)
-          
-                    j = self.centerImageArray(np.array(ImageChops.multiply(prob_fig['A'],prob_fig['B'])))
-                    k = self.compare_images(j, prob_array['B'])
-                    print(k)
-                    
-                    complist = [ self.pixels_comparison(mlist[mlistMin],ans_array[x]) for x in ans_array]    
-                    mincomp = np.argmin(complist)
-                    
-                    if min(complist) <= k:
-                        answer = mincomp + 1
-                        print(answer)
-                        return answer
-                    else:
-                        answer = mincomp + 1
-                        print(answer)
-                        return(answer)
-    
-                                    
-                elif min(compare_scoreAC) < min(compare_scoreAB):
-                    print('C transformation')
-                    index_minCI = np.argmin(compare_scoreBI)
-                    answer = index_minCI + 1
-                    print(answer)
-                    return answer
-                elif min(compare_scoreAB) < min(compare_scoreAC):
-                    print('B transformation')
-                    index_minBI = np.argmin(compare_scoreCI)
-                    answer = index_minBI + 1
-                    print(answer)
-                    return answer
+                                return i              
+                             
                 else:
                     answer = random.randint(1,7)
                     print(answer)
-                    return answer
-                                                               
-                                
+                    return answer            
+        
+        
+        
         if problem.problemType == '3x3':
-
             print("problem name: " + problem.name)
+
             prob_fig = {}
             ans_fig = {}
             prob_array = {}
@@ -186,202 +176,121 @@ class Agent:
                 if key in ans_list:
                     ans_fig[key] = image   
                     ans_array[key] = arrayImage
+
+    
+            rowAB = ImageChops.add(prob_fig['A'], prob_fig['B'])
+            rowBC = ImageChops.add(prob_fig['B'], prob_fig['C'])
+            rowDE = ImageChops.add(prob_fig['D'], prob_fig['E'])
+            rowEF = ImageChops.add(prob_fig['E'], prob_fig['F'])
+    
+            colAD =ImageChops.multiply(prob_fig['A'], prob_fig['D'])
+            colADG= ImageChops.multiply(colAD, prob_fig['G'])
+    
+            colBE =ImageChops.multiply(prob_fig['B'], prob_fig['E'])
+            colBEH= ImageChops.multiply(colBE, prob_fig['H'])
+    
+            ab = ImageChops.multiply(prob_fig['A'],prob_fig['B'])
+            bc = ImageChops.multiply(prob_fig['B'], prob_fig['C'])
+            ac = ImageChops.multiply(prob_fig['A'],prob_fig['C'])
+            df = ImageChops.multiply(prob_fig['D'],prob_fig['F'])
+            abc = ImageChops.multiply(ab,prob_fig['C'])
+            de = ImageChops.multiply(prob_fig['D'],prob_fig['E'])
+            de_F=ImageChops.multiply(de,prob_fig['F'])
+            ef = ImageChops.multiply(prob_fig['E'],prob_fig['F'])
+    
+            difAB=self.black_to_white_pixels(ImageChops.difference(prob_fig['A'], prob_fig['B']))
+            difDE=self.black_to_white_pixels(ImageChops.difference(prob_fig['D'], prob_fig['E']))
+    
+            if self.equal_images(prob_fig['A'], prob_fig['B'])[0] and self.equal_images(prob_fig['B'], prob_fig['C'])[0]:
+                if self.equal_images(prob_fig['D'], prob_fig['E'])[0] and self.equal_images(prob_fig['E'], prob_fig['F'])[0]:
+                    for i in range(1,9):
+                        if self.equal_images(prob_fig['H'],ans_fig[str(i)])[0]:
+                            return i
+            elif self.equal_images(prob_fig['A'],prob_fig['E'])[0]:
+                for i in range(1,9):
+                    if self.equal_images(prob_fig['E'],ans_fig[str(i)])[0]:
+                        return i        
+            elif ((self.equal_images(prob_fig['A'], prob_fig['D'])[0] or self.equal_images(prob_fig['A'], prob_fig['E'])[0] or self.equal_images(prob_fig['A'],prob_fig['F'])[0]) \
+                    and (self.equal_images(prob_fig['B'], prob_fig['D'])[0] or self.equal_images(prob_fig['B'], prob_fig['E'])[0] or self.equal_images(prob_fig['B'], prob_fig['F'])[0]) \
+                    and (self.equal_images(prob_fig['C'], prob_fig['D'])[0] or self.equal_images(prob_fig['C'], prob_fig['E'])[0] or self.equal_images(prob_fig['C'], prob_fig['F'])[0])):
+                if self.equal_images(prob_fig['A'], prob_fig['G'])[0] or self.equal_images(prob_fig['A'],prob_fig['H'])[0]:
+                    if self.equal_images(prob_fig['B'], prob_fig['G'])[0] or self.equal_images(prob_fig['B'],prob_fig['H'][0]):
+                        if self.equal_images(prob_fig['C'], prob_fig['G'])[0] or self.equal_images(prob_fig['C'],prob_fig['H'])[0]:
+                            print("need to chose another strategy")
+                        else:
+                            missing_figure ='C'
+                    else:
+                        missing_figure ='B'
+                else:
+                    missing_figure = "A"
+        
+                for i in range(1, 9):
+                    if self.equal_images(prob_fig[missing_figure], ans_fig[str(i)])[0]:
+                        return i            
             
-            aList = ["AB", "AC", "AD", "AE","AF",'AG','AH']
-            bList = ["BC","BD","BE","BF",'BG','BH']
-            cList = ["CD","CE","CF",'CG','CH']
-            dList = ['DE','DF','DG','DH']
-            eList = ['EF','EG','EH']
-            flist = ['FG','FH']
-            acompare = [ prob_array['B'],prob_array['C'],prob_array['D'],prob_array['E'],prob_array['F'],prob_array['G'],prob_array['H']]
-            bcompare = [prob_array['C'],prob_array['D'],prob_array['E'],prob_array['F'],prob_array['G'],prob_array['H']]
-            ccompare = [prob_array['D'],prob_array['E'],prob_array['F'],prob_array['G'],prob_array['H']]
-            dcompare = [prob_array['E'],prob_array['F'],prob_array['G'],prob_array['H']]
-            ecompare = [prob_array['F'],prob_array['G'],prob_array['H']]
-            fcompare = [prob_array['G'],prob_array['H']]
-            ghPix = self.pixels_comparison(prob_array['G'], prob_array['H'])
-            ghMSE = self.compare_images(prob_array['G'], prob_array['H'])
-            aDictPix = [self.pixels_comparison(prob_array['A'],x) for x in acompare]
-            bDictPix = [self.pixels_comparison(prob_array['B'],x) for x in bcompare]
-            cDictPix = [self.pixels_comparison(prob_array['C'],x) for x in ccompare]
-            dDictPix = [self.pixels_comparison(prob_array['D'],x) for x in dcompare]
-            eDictPix = [self.pixels_comparison(prob_array['E'],x) for x in ecompare]
-            fDictPix = [self.pixels_comparison(prob_array['F'],x) for x in fcompare]            
-            aDictMSE = [self.compare_images(prob_array['A'],x) for x in acompare]
-            bDictMSE = [self.compare_images(prob_array['B'],x) for x in bcompare]
-            cDictMSE = [self.compare_images(prob_array['C'],x) for x in ccompare]
-            dDictMSE = [self.compare_images(prob_array['D'],x) for x in dcompare]
-            eDictMSE = [self.compare_images(prob_array['E'],x) for x in ecompare]
-            fDictMSE = [self.compare_images(prob_array['F'],x) for x in fcompare]
-            
-            ansListH = [self.pixels_comparison(prob_array['H'],ans_array[str(x)]) for x in range(1,9)]
-            ansListF = [self.pixels_comparison(prob_array['F'],ans_array[str(x)]) for x in range(1,9)]
-            ansListG = [self.pixels_comparison(prob_array['G'],ans_array[str(x)]) for x in range(1,9)]
-            ansListE = [self.pixels_comparison(prob_array['E'],ans_array[str(x)]) for x in range(1,9)]
-            
-            ansMinH = np.argmin(ansListH)
-            ansMinF = np.argmin(ansListF)
-            ansMinG = np.argmin(ansListG)
-            ansMinE = np.argmin(ansListE) 
-            
-            
-            ''' Problem Solving for Analogical Reasoning'''
-            
-            '''Finding an answer with individual figure changes from frame to frame'''
-            
-            if aDictPix[0] == bDictPix[0]:
-                answer = ansMinH + 1
-                print(answer)
+            elif self.equal_images(rowAB, rowBC)[0] and self.equal_images(rowDE, rowEF)[0]:
+                rowCF = ImageChops.add(prob_fig["C"], prob_fig["F"])
+                rowGH = ImageChops.add(prob_fig["G"], prob_fig["H"])
+                rowHF = ImageChops.multiply(prob_fig["H"], prob_fig["F"])
+                answers ={}
+    
+                for i in range(1, 9):
+                    candidate = ImageChops.add(rowCF, ans_fig[str(i)])
+                    candidate2 = ImageChops.add(rowGH, ans_fig[str(i)])
+        
+                    if self.equal_images(rowCF, candidate)[0] and self.equal_images(rowGH, candidate2)[0]:
+        
+                        answers[i]= ans_fig[str(i)]
+        
+                if len(answers)!=1:
+                    if self.transformation_equality(prob_fig):
+                        return self.apply_transform(prob_fig, ans_fig)
+                    else:
+                        return self.no_duplicates(prob_fig, ans_fig)
+                else:
+                    for keys in answers:
+                        answer = answers[keys][0]
+                        return answer
+                return -1
+        
+            elif self.equal_images(colADG, colBEH)[0]:
+                colAD= ImageChops.multiply(prob_fig['A'], prob_fig['D'])
+                colADG= ImageChops.multiply(colAD, prob_fig['G'])
+                colCF= ImageChops.multiply(prob_fig['C'], prob_fig['F'])
+        
+                for i in range(1, 9):
+                    candidate = ImageChops.multiply(colCF, ans_fig[str(i)])
+                    if self.equal_images(candidate,colADG)[0]:
+                        return i
+                return -1
+            if self.equal_images(ab, prob_fig['C'])[0] and self.equal_images(de, prob_fig['F'])[0]:
+                i = 1
+                answer = self.combo_answer(prob_fig, ans_fig, i)
                 return answer
-            elif aDictPix[3] == 0:
-                if self.equal_images(prob_fig['A'], prob_fig['E'])[0]:
-                    answer = ansMinE + 1
-                    print(answer)
-                    return answer
-                else:
-                    print('circles are not squares')
-                    return 2
+            elif self.equal_images(ac, prob_fig['B'])[0] and self.equal_images(df, prob_fig['E'])[0]:
+                i = 2
+                answer = self.combo_answer(prob_fig, ans_fig, i)
+                return answer                              
+            elif self.equal_images(abc, de_F)[0]:
+                i = 0
+                answer = self.combo_answer(prob_fig, ans_fig, i)
+                return answer                
+            elif self.equal_images(difAB, prob_fig['C'])[0] and self.equal_images(difDE, prob_fig['F'])[0]:
+                answer = self.ans_difference(prob_fig, ans_fig)
+                return answer
+            elif self.transformation_equality(prob_fig):
+                return self.apply_transform(prob_fig, ans_fig)
             else:
-                nextTree = 'move to sum'
-                print(nextTree)
-            
-            
-            '''Finding and answer through the aggregate change accross the entire row'''
-            
-            if nextTree == 'move to sum':
-                sumOfRow1 = self.sum_of_row(prob_array['A'], prob_array['B'], prob_array['C'])
-                sumOfRow2 = self.sum_of_row(prob_array['D'], prob_array['E'], prob_array['E'])
-                sumOfPairAB = self.sum_of_pair(prob_array['A'], prob_array['B'])
-                sumOfPairAC = self.sum_of_pair(prob_array['A'], prob_array['C'])
-                sumOfPairBC = self.sum_of_pair(prob_array['B'], prob_array['C'])
-                diffOfRow1 = self.diff_of_row(prob_array['A'], prob_array['B'], prob_array['C'])
-                diffOfRow2 = self.diff_of_row(prob_array['D'], prob_array['E'], prob_array['F'])
-                
-                A = self.get_pixel_count(prob_array['A'])
-                B = self.get_pixel_count(prob_array['B'])
-                C = self.get_pixel_count(prob_array['C'])
-                if sumOfRow1 == sumOfRow2:
-                    print('row sums equal')
-                    pass
-                elif sumOfPairAB == C:
-                    print('combo of AB2C')
-                    pass
-                elif sumOfPairAC == B:
-                    print('combo of AC2B')
-                    pass
-                elif sumOfPairBC == A:
-                    print('combo of BC2A')
-                    pass
-                elif diffOfRow1 == diffOfRow2:
-                    print('cyclic pattern with with equal interior and changing exterior of figure')
-                    answerlist = self.diff_of_ans(prob_array['G'], prob_array['H'], ans_array)
-                    if min(answerlist) == diffOfRow1:
-                        answer = np.argmin(answerlist) + 1
-                        print(answer)
-                        return(answer)
-                    else:
-                        answerList = [abs(diffOfRow1 - x) for x in answerlist]
-                        answer = np.argmin(answerList) + 1
-                        print(answer)
-                        return answer
-                else:
-                    nextTree = 'move to differences'
-                    print(nextTree)
-                
-                ''' finding an answer through comparing the pixel differences between pairs of frames '''
-                
-                answer1 = self.nearest_answerHI(eDictPix,ansListH)
-                answer2 = self.nearest_answerFI(eDictPix,ansListF)
-                answer3 = self.nearest_answerGI(aDictPix,ansListG)
-                answer4 = self.nearest_answerEI(bDictPix,ansListE)
-                
-                if aDictPix[0] == dDictPix[0]:                    
-                    print('AB2DE row difference equal')
-                    if bDictPix[0] == eDictPix[0]:
-                        print('AB2DE and BC2DE')
-                        if aDictPix[2] == bDictPix[2]:
-                            print('equal pair transformation across row and down column')
-                            if answer1 == answer2:
-                                print(' answers equal')
-                                print(answer1)
-                                return(answer1)
-                            else:
-                                print(answer1)
-                                return answer1
-                    else:
-                        return answer1
-                    
-                elif aDictPix[2] == bDictPix[2]:
-                    print('transformation pair equal down column')
-                    print(answer2)
-                    return answer2
-                elif aDictPix[1] == dDictPix[1]:
-                    print('transformation pair equal across row')
-                    for x in prob_array:
-                        if self.pixels_comparison(ans_array[str(answer3)],prob_array[x]) == 0:
-                            print('answer equal to another object')
-                            answerlist = [self.pixels_comparison(ans_array[str(answer3)],ans_array[str(x)]) for x in ans_array]
-                            answer = self.find_second_min_list(answerlist) + 1
-                            print(answer)
-                            return answer
-                elif (aDictPix[3] == bDictPix[1] or aDictPix[3] == bDictPix[3]) or (aDictPix[3] == cDictPix[0] or aDictPix[3] == cDictPix[2]):
-                    print('Cyclic pattern where differences are equal diagonally')
-                    print(answer4)
-                    return answer4
-                elif ( self.compare_pixels(aDictPix[3],bDictPix[1]) < .1 or self.compare_pixels(aDictPix[3],bDictPix[1]) < .1):
-                    print('Cyclic pattern where differences are equal diagonally')
-                    print(answer4)
-                    return answer4
-                else:
-                    nextTree = 'move to combo'
-                    print(nextTree)
-                    
-                '''using combinations to solve problems'''
-                
-                if nextTree == 'move to combo':
-                    imagecombo = self.image_combo(prob_fig,prob_array)
-                    imagedifference = self.change_black_to_white(prob_fig, prob_array)
-                    comboList = [imagecombo[0], imagedifference[0]]
-                    comboMin = np.argmin(comboList)
-                    if comboMin == 0: 
-                        print('combo of two images')
-                        answer = self.ans_combo(ans_fig, ans_array,prob_fig,prob_array,imagecombo[1])
-                        print(answer)
-                        return answer
-                    elif comboMin == 1:
-                        print('difference of two images')
-                        answer = self.ans_difference(ans_fig, ans_array,prob_fig,prob_array,imagedifference[1])
-                        print(answer)
-                        return answer
-   
-                else:
-                    nexTree = 'move to pixel sequence'
-                    print(nextTree)
-                    
-                
-                ''' using pixel sequence to find answers'''
-                
-                if nextTree == 'move to pixel sequence':
-                    if (self.pixels_comparison(prob_array['A'],prob_array['B']) < self.pixels_comparison(prob_array['A'],prob_array['C'])) and (self.pixels_comparison(prob_array['A'],prob_array['B']) < self.pixels_comparison(prob_array['B'],prob_array['C'])):
-                        print('problem is a sequence problem')
-                        for i in range(0,8):
-                            if ghPix < ansListG[i]:
-                                print(True)
-                                answer = i + 1
-                                print(answer)
-                                return answer
-                    else:
-                        nextTree = 'last stand'
-                        print(nextTree)
-                    
-                ''' Calculated Random Guessing '''
-                
-                if nextTree == 'last stand':
+                try:
+                    answer = self.no_duplicates(prob_fig, ans_fig)
+                    return answer
+                except:
                     answer = random.randint(1,9)
-                    print(answer)
-                    return(answer)
-                            
-                  
+                    return answer
+    
+            return -1
+
+
     @staticmethod
     def equal_images(im1, im2):
         dif = sum(abs(p1 - p2) for p1, p2 in zip(im1.getdata(), im2.getdata()))
@@ -392,7 +301,7 @@ class Agent:
         im2_getcolors = im2.getcolors()
         black1 = (10000, 0)
         if len(im1__getcolors) > 1:
-            (black, white) = im1__getcolors
+            black, white = im1__getcolors
 
         else:
             if im1__getcolors[0][1] == 255:
@@ -403,7 +312,7 @@ class Agent:
                 white = (0, 255)
 
         if len(im2_getcolors) > 1:
-            (black1, white1) = im2_getcolors
+            black1, white1 = im2_getcolors
         else:
             if im2_getcolors[0][1] == 255:
                 white1 = im2_getcolors
@@ -418,101 +327,130 @@ class Agent:
 
 
         return (dist<1.1 and abs(black[0]-black1[0])<105), stats
-        # return (dist<1.1 and abs(black[0]-black1[0])<105 and abs(white[0]-white1[0]<100)), stats                     
-                                      
-    ''' Functions for determining transformations'''
-    
+        # return (dist<1.1 and abs(black[0]-black1[0])<105 and abs(white[0]-white1[0]<100)), stats
 
-    def find_nearest_list(self, list1, list2,list3,list4, four):       
+    def transformation_equality(self, prob_fig):
+        sharedAB=self.pixel_comparison(prob_fig["A"], prob_fig["B"])[0]
+        sharedDE=self.pixel_comparison(prob_fig["D"], prob_fig["E"])[0]
+        return self.equal_images(sharedAB, prob_fig["C"])[0] and self.equal_images(sharedDE, prob_fig["F"])[0]
 
-        rowListAD = [abs(list1[0] - x) for x in list4]
-        rowListGH = abs(list1[0] - four)
-        
-        
-        comboListAD = [abs(list1[1] - x) for x in list4]
-        
-
-        colListAB = [abs(list1[2] - x) for x in list2]
-        colListAC = [abs(list1[2] - x) for x in list3]
-
-        diagListAB = [abs(list1[3] - x) for x in list2]
-        diagListAC = [abs(list1[3] - x) for x in list3]
-
-        rowminAD = np.argmin(rowListAD)
-        colminAB = np.argmin(colListAB)
-        colminAC = np.argmin(colListAC)
-        diagminAB = np.argmin(diagListAB)
-        diagminAC = np.argmin(diagListAC)
-        combolistmin = np.argmin(comboListAD)
-
-        if diagminAB == 1 or diagminAB == 3:
-            print('Cyclic pattern')
-            return 1
-        elif rowListAD == 0:
-            if rowListGH == 0:
-                print('pattern same ab2de2gh and bc2ef2hi')
-                return 2
-        elif combolistmin == 1:
-            print('Combo or pattern same across rows')
-            return 3
+    def apply_transform(self, prob_fig, ans_fig):
+        sharedGE=self.pixel_comparison(prob_fig["G"], prob_fig["H"])[0]
+        for i in range(1, 9):
+            if self.equal_images(sharedGE, ans_fig[str(i)])[0]:
+                return int(i)
         else:
-            return 4
+            try:
+                answer = self.no_duplicates(prob_fig, ans_fig)
+                return answer
+            except:
+                answer = random.randint(1,9)
+                return answer            
+            return -1
 
-    def nearest_answerHI(self, list1,list2):
+    def combo_answer(self, prob_fig, ans_fig, index):
+        de = ImageChops.multiply(prob_fig["D"],prob_fig["E"])
+        gh = ImageChops.multiply(prob_fig["G"],prob_fig["H"])
+        de_F=ImageChops.multiply(de,prob_fig["F"])
+
+
+        if index == 0:
+            for i in range (1,9):
+                candidate= ImageChops.multiply(gh, ans_fig[str(i)])
+                if self.equal_images(candidate,de_F)[0]:
+                    return i
+            return self.no_duplicates(prob_fig, ans_fig)
         
-        ansListHI = [abs(list1[0] - x) for x in list2]
+        if index == 1:
+            for i in range (1,9):
+                if self.equal_images(gh,ans_fig[str(i)])[0]:
+                    return i
+            return self.no_duplicates(prob_fig, ans_fig)
         
-        minAns = np.argmin(ansListHI)
-        
-        answer = minAns + 1
-        print(answer)
-        return answer
+        if index == 2:
+            for i in range (1,9):
+                candidate= ImageChops.multiply(prob_fig["G"], ans_fig[str(i)])
+                if self.equal_images(candidate,prob_fig["H"])[0]:
+                    return i
+            return self.no_duplicates(prob_fig, ans_fig)
+
+    def ans_difference(self, prob_fig, ans_fig):
+        difGH=self.black_to_white_pixels(ImageChops.difference(prob_fig["H"], prob_fig["G"]))
+        for i in range (1,9):
+            if self.equal_images(ans_fig[str(i)],difGH)[0]:
+                return i
+        return self.no_duplicates(prob_fig, ans_fig)
+
+
+    def no_duplicates(self, prob_fig, ans_fig):
+        figs =["A","B","C","D","E","F","G", "H"]
+        answers=[1,2,3,4,5,6,7,8]
+        for fig in figs:
+            for i in range(1,9):
+                if self.equal_images(prob_fig[fig], ans_fig[str(i)])[0] :
+                    if i in answers:
+                        answers.remove(i)
+
+        if len(answers)==1:
+            return answers[0]
+        elif self.skipping:
+            return -1
+        return answers[0]
+
     
-    def nearest_answerGI(self, list1,list2):
-        
-        ansListGI = [abs(list1[1] - x) for x in list2]
-        
-        minAns = np.argmin(ansListGI)
-        
-        answer = minAns + 1
-        return answer
+    def black_to_white_pixels(self, image):
+        inverted = Image.new("1", image.size, "white")
+        for x in range(0, image.size[1]):
+            for y in range(0, image.size[0]):
+                p1 = image.getpixel((x, y))
+                if (p1 == 0):
+                    inverted.putpixel((x, y), 255)
+                else:
+                    inverted.putpixel((x, y), 0)
+
+        return inverted
     
-    def nearest_answerEI(self, list1,list2):
-        
-        ansListEI = [abs(list1[3] - x) for x in list2]
-        
-        minAns = np.argmin(ansListEI)
-        
-        answer = minAns + 1
-        return answer    
+    def centerImageArray(self,figArray):
+        figImage = Image.fromarray(figArray, "L")
+
+        # mask
+        threshold=128
+        mask = figImage.point(lambda p: p < threshold and 255)
+
+        # find edges
+        edges = mask.filter(ImageFilter.FIND_EDGES)
+        box = edges.getbbox()
+        edges = edges.crop(box)
+
+        # center in new image-figure
+        tempImg = Image.new("L", figImage.size)
+
+        width, height = edges.size
+        fwidth, fheight = figImage.size
+
+        tempImg.paste(edges, ((fwidth - width) // 2, (fheight - height) // 2))
+
+        return np.array(tempImg)    
     
-    def nearest_answerFI(self, list1,list2):
-        
-        ansListFI = [abs(list1[2] - x) for x in list2]
-        
-        minAns = np.argmin(ansListFI)
-        
-        answer = minAns + 1
-        return answer       
+    def pixel_comparison(self, img1, img2):
+        common = Image.new("1", img1.size, "white")
 
+        delta = Image.new("1", img1.size, "white")
+        for x in range(0, common.size[1]):
+            for y in range(0, common.size[0]):
+                p1 = img1.getpixel((x, y))
+                p2 = img2.getpixel((x, y))
+                if (p1 == 0 and p2 == 0):
+                    common.putpixel((x, y), 0)
 
-    def greater_than_list(self, ans_array, prob_array):
+                elif p1 == 255 and p2 == 255:
+                    common.putpixel((x, y), 255)
 
-        if self.pixels_comparison(prob_array['A'],prob_array['B']) < self.pixels_comparison(prob_array['B'],prob_array['C']):
-            i = 0
-            max_list = []
-            while i < len(ans_array):
-                m = self.pixels_comparison(prob_array['H'],ans_array[str(i)])
-                if m > self.pixels_comparison(prob_array['G'],prob_array['H']):
-                    max_list.append(m)
-                    i +=1 
-                    return m            
-            
-            
-            
-            
-            
-    ''' Functions for dealing with the images '''       
+                else:
+
+                    delta.putpixel((x, y), 0)
+
+        return common, delta    
     
     def center_lists(self, list1):
         
@@ -624,8 +562,12 @@ class Agent:
     
     def compare_pixels(self, list1, list2):
         
-        m = (abs(list1 - list2)/list1)
-        return m
+        if list1 != 0:
+            m = (abs(list1 - list2)/list1)
+            return m
+        else:
+            m = (abs(list1 - list2)/list2)
+            return m
 
     def find_min(self, ans_array, array2):
         answer_compare = [self.compare_images(ans_array[str(x)],array2) for x in range(1,9)]
@@ -720,218 +662,88 @@ class Agent:
         
         diffOfAns = [abs(gh - self.pixels_comparison(h, ans_array[x])) for x in ans_array]
         
-        return diffOfAns
+        return diffOfAns    
     
-    '''Combination functions'''   
-    
-    def image_combo(self, prob_fig, prob_array):
+    def find_nearest_list(self, list1, list2,list3,list4, four):       
+
+        rowListAD = [abs(list1[0] - x) for x in list4]
+        rowListGH = abs(list1[0] - four)
         
-        A = prob_fig['A']
-        B = prob_fig['B']
-        C = prob_fig['C']        
         
-        AB = ImageChops.multiply(A,B)
-        BC = ImageChops.multiply(B,C)
-        AC = ImageChops.multiply(A,C)
+        comboListAD = [abs(list1[1] - x) for x in list4]
         
-        arrayAB = self.centerImageArray(np.array(AB))
-        arrayBC = self.centerImageArray(np.array(BC))
-        arrayAC = self.centerImageArray(np.array(AC))
-        
-        ABisC1 = self.compare_images(arrayAB, prob_array['C'])
-        BCisA1 = self.compare_images(arrayBC, prob_array['A'])
-        ACisB1 = self.compare_images(arrayAC, prob_array['B'])        
-        
-        min_list = [ABisC1,BCisA1,ACisB1]
-        min_value = min(min_list)
-        min_index = np.argmin(min_list)
-        
-        if self.equal_images(AB,C)[0]:
-            a = [min_value, 0]
-            return a
-        elif self.equal_images(BC,A)[0]:
-            b = [min_value, 1]
-            return b
-        elif self.equal_images(AC,B)[0]:
-            c = [min_value, 2]
-            return c
+
+        colListAB = [abs(list1[2] - x) for x in list2]
+        colListAC = [abs(list1[2] - x) for x in list3]
+
+        diagListAB = [abs(list1[3] - x) for x in list2]
+        diagListAC = [abs(list1[3] - x) for x in list3]
+
+        rowminAD = np.argmin(rowListAD)
+        colminAB = np.argmin(colListAB)
+        colminAC = np.argmin(colListAC)
+        diagminAB = np.argmin(diagListAB)
+        diagminAC = np.argmin(diagListAC)
+        combolistmin = np.argmin(comboListAD)
+
+        if diagminAB == 1 or diagminAB == 3:
+            print('Cyclic pattern')
+            return 1
+        elif rowListAD == 0:
+            if rowListGH == 0:
+                print('pattern same ab2de2gh and bc2ef2hi')
+                return 2
+        elif combolistmin == 1:
+            print('Combo or pattern same across rows')
+            return 3
         else:
-            d = [min_value, min_index]
-            return d
+            return 4
 
+    def nearest_answerHI(self, list1,list2):
+        
+        ansListHI = [abs(list1[0] - x) for x in list2]
+        
+        minAns = np.argmin(ansListHI)
+        answer = minAns + 1
+        print(answer)
+        return answer
     
-    def change_black_to_white(self, prob_fig, prob_array):
+    def nearest_answerGI(self, list1,list2):
         
-        A = prob_fig['A']
-        B = prob_fig['B']
-        C = prob_fig['C']          
+        ansListGI = [abs(list1[1] - x) for x in list2]
         
-        AB = self.black_white_pixel_flip(ImageChops.difference(A,B))
-        BC = self.black_white_pixel_flip(ImageChops.difference(B,C))
-        AC = self.black_white_pixel_flip(ImageChops.difference(A,C)) 
-      
+        minAns = np.argmin(ansListGI)
         
-        arrayAB = self.centerImageArray(np.array(AB))
-        arrayBC = self.centerImageArray(np.array(BC))
-        arrayAC = self.centerImageArray(np.array(AC))
-                                      
-        ABisC = self.equal_images(AB, C)[0]
-        BCisA = self.equal_images(BC, A)[0]
-        ACisB = self.equal_images(AC, B)[0]
-        
-        ABisC1 = self.compare_images(arrayAB, prob_array['C'])
-        BCisA1 = self.compare_images(arrayBC, prob_array['A'])
-        ACisB1 = self.compare_images(arrayAC, prob_array['B'])        
-        
-        min_list = [ABisC1,BCisA1,ACisB1]
-        min_value = min(min_list)
-        min_index = np.argmin(min_list)
-        
-        if ABisC:
-            a = [min_value, 0]
-            return a
-        elif BCisA:
-            b = [min_value, 1]
-            return b
-        elif ACisB:
-            c = [min_value, 2]
-            return c
-        else:
-            d = [min_value, min_index]
-            return d
-       
+        answer = minAns + 1
+        return answer
     
-    ''' Answer functions for combination functions'''
+    def nearest_answerEI(self, list1,list2):
+        
+        ansListEI = [abs(list1[3] - x) for x in list2]
+        
+        minAns = np.argmin(ansListEI)
+        
+        answer = minAns + 1
+        return answer    
     
-   
-    
-    def ans_difference(self, ans_fig, ans_array, prob_fig,prob_array,min_index):
+    def nearest_answerFI(self, list1,list2):
         
-        GH = self.black_white_pixel_flip(ImageChops.difference(prob_fig['G'],prob_fig['H']))
-        HI = [self.black_white_pixel_flip(ImageChops.difference(prob_fig['H'],ans_fig[str(x)])) for x in range(1,9)]
-        GI = [self.black_white_pixel_flip(ImageChops.difference(prob_fig['G'],ans_fig[str(x)])) for x in range(1,9)]
+        ansListFI = [abs(list1[2] - x) for x in list2]
         
-        arrayGH = self.centerImageArray(np.array(GH))
-        arrayHI = self.center_lists(HI)
-        arrayGI = self.center_lists(GI)
-
-        if min_index == 0:
-            for i in range(1,9):
-                if self.equal_images(GH, ans_fig[str(i)])[0]:
-                    print(i)
-                    return i
-                
-            GHlist = [self.compare_images(arrayGH, ans_array[str(x)]) for x in range(1,9)]
-            GH_index = np.argmin(GHlist)
-            
-            if min(GHlist)== 0:
-                answer1 = GH_index + 1
-                print(answer1)
-                return answer1
-            else:
-                return GH_index + 1
-
-
-        elif min_index == 1:
-            
-            for i in range(0,8):
-                if self.equal_images(HI[i], prob_fig['G'])[0]:
-                    print(i + 1)
-                    return i + 1
-                
-            HIlist = [self.compare_images(arrayHI[x], prob_array['G']) for x in range(0,8)]
-            HI_index = np.argmin(HIlist)
-           
-            if min(HIlist)== 0:
-                answer1 = HI_index + 1
-                print(answer1)
-                return answer1
-            else:
-                return HI_index + 1
-
-        elif min_index == 2:
-            
-            for i in range(0,8):
-                if self.equal_images(GI[i], prob_fig['H']):
-                    print(i + 1)
-                    return i + 1
-            
-            GIlist = [self.compare_images(arrayGI[x], prob_array['H']) for x in range(0,8)]
-            GI_index = np.argmin(GIlist)
-            
-            if min(GIlist)== 0:
-                answer1 = GI_index + 1
-                print(answer1)
-                return answer1
-            else:
-                return GI_index + 1  
-            
-                
-    def ans_combo(self, ans_fig, ans_array, prob_fig,prob_array,min_index):
-
-        GH = ImageChops.multiply(prob_fig['G'],prob_fig['H'])
-
-        HI = [ImageChops.multiply(prob_fig['H'],ans_fig[str(x)]) for x in range(1,9)]
-        GI = [ImageChops.multiply(prob_fig['G'],ans_fig[str(x)]) for x in range(1,9)]
+        minAns = np.argmin(ansListFI)
         
-        arrayGH = self.centerImageArray(np.array(GH))
-        arrayHI = self.center_lists(HI)
-        arrayGI = self.center_lists(GI)
-
-        if min_index == 0:
-            for i in range(1,9):
-                if self.equal_images(GH, ans_fig[str(i)])[0]:
-                    print(i)
-                    return i
-                
-            GHlist = [self.compare_images(arrayGH, ans_array[str(x)]) for x in range(1,9)]
-            GH_index = np.argmin(GHlist)
-            
-            if min(GHlist)== 0:
-                answer1 = GH_index + 1
-                print(answer1)
-                return answer1
-            else:
-                print(GH_index + 1)
-                return GH_index + 1
+        answer = minAns + 1
+        return answer       
 
 
-        elif min_index == 1:
-            
-            for i in range(0,8):
-                if self.equal_images(HI[i], prob_fig['G'])[0]:
-                    print(i + 1)
-                    return i + 1
-                
-            HIlist = [self.compare_images(arrayHI[x], prob_array['G']) for x in range(0,8)]
-            HI_index = np.argmin(HIlist)
-           
-            if min(HIlist)== 0:
-                answer1 = HI_index + 1
-                print(answer1)
-                return answer1
-            else:
-                return HI_index + 1
+    def greater_than_list(self, ans_array, prob_array):
 
-        elif min_index == 2:
-            
-            for i in range(0,8):
-                if self.equal_images(GI[i], prob_fig['H']):
-                    print(i + 1)
-                    return i + 1
-            
-            GIlist = [self.compare_images(arrayGI[x], prob_array['H']) for x in range(0,8)]
-            GI_index = np.argmin(GIlist)
-            
-            if min(GIlist)== 0:
-                answer1 = GI_index + 1
-                print(answer1)
-                return answer1
-            else:
-                print(GI_index + 1)
-                return GI_index + 1      
-        
-
-end = time.time()
-
-print(end - start)
+        if self.pixels_comparison(prob_array['A'],prob_array['B']) < self.pixels_comparison(prob_array['B'],prob_array['C']):
+            i = 0
+            max_list = []
+            while i < len(ans_array):
+                m = self.pixels_comparison(prob_array['H'],ans_array[str(i)])
+                if m > self.pixels_comparison(prob_array['G'],prob_array['H']):
+                    max_list.append(m)
+                    i +=1 
+                    return m     
